@@ -8,19 +8,26 @@ use Imagick;
 
 class PdfTextExtractor
 {
-    public function extract(string $pdfPath): string
+    public function extract(string $pdfPath, callable $progress = null, callable $log = null): string
     {
         $text = $this->extractWithParser($pdfPath);
 
         if (trim($text) !== '') {
-            echo "Texto detectado con pdfparser\n";
+
+            if ($log) {
+                $log("Texto detectado con pdfparser");
+            }
+
             return $text;
         }
 
-        echo "No hay texto, usando OCR\n";
+        if ($log) {
+            $log("No hay texto, usando OCR");
+        }
 
-        return $this->extractWithOCR($pdfPath);
+        return $this->extractWithOCR($pdfPath, $progress);
     }
+
 
     private function extractWithParser(string $pdfPath): string
     {
@@ -34,17 +41,27 @@ class PdfTextExtractor
         }
     }
 
-    private function extractWithOCR(string $pdfPath): string
+    
+    private function extractWithOCR(string $pdfPath, callable $progress = null): string
     {
         $imagick = new Imagick();
         $imagick->setResolution(300, 300);
         $imagick->readImage($pdfPath);
 
+        $dir = storage_path("app/ocr_tmp");
+
+        if (!file_exists($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
         $text = '';
+
+        $total = $imagick->getNumberImages();
+        $current = 0;
 
         foreach ($imagick as $i => $page) {
 
-            $imgPath = storage_path("app/ocr_page_$i.png");
+            $imgPath = $dir . "/page_$i.png";
 
             $page->setImageFormat('png');
             $page->writeImage($imgPath);
@@ -54,6 +71,12 @@ class PdfTextExtractor
                 ->lang('spa');
 
             $text .= $ocr->run() . "\n";
+
+            $current++;
+
+            if ($progress) {
+                $progress($current, $total);
+            }
         }
 
         return $text;
