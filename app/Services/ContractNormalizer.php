@@ -4,143 +4,102 @@ namespace App\Services;
 
 class ContractNormalizer
 {
-    //(No borrar ni modificar) NOTA: Futura implementación de unlink() para limpiar automáticamente los .png generados
-
-    public function normalize(string $text): array
+ //(No borrar ni modificar) NOTA: Futura implementación de unlink() para limpiar automáticamente los .png generados
+    public function normalize(array $data): array
     {
-        // Limpiar espacios extra
-        $text = preg_replace('/\s+/', ' ', $text);
+        $out = [];
 
-        $data = [];
+        $out['numero'] = $data['numero'] ?? null;
 
-        // Extracción dinámica
-        $data['numero'] = $this->extractNumero($text);
-        $data['tipo'] = $this->extractTipo($text);
-        $data['proveedor'] = $this->extractProveedor($text);
-        $data['rfc_proveedor'] = $this->extractRFC($text);
-        $data['dependencia'] = $this->extractDependencia($text);
-        $data['monto'] = $this->extractMonto($text);
-        $data['moneda'] = $this->extractMoneda($text);
-        $data['fecha_firma'] = $this->extractFechaFirma($text);
-        $data['fecha_inicio'] = $this->extractFechaInicio($text);
-        $data['fecha_fin'] = $this->extractFechaFin($text);
+        $out['tipo'] = $this->normalizeTipo($data['tipo'] ?? null);
 
-        return $data;
-    }
+        $out['proveedor'] = $this->normalizeProveedor($data['proveedor'] ?? null);
 
-    
-    private function extractNumero(string $text): ?string
-    {
-        if (preg_match('/SESEA\/[A-Z]+\/\d+\/\d+/', $text, $m)) {
-            return $m[0];
-        }
-        return null;
+        $out['rfc_proveedor'] = $data['rfc_proveedor'] ?? null;
+
+        $out['dependencia'] = $this->normalizeDependencia($data['dependencia'] ?? null);
+
+        $out['monto'] = $this->normalizeMonto($data['monto'] ?? null);
+
+        $out['moneda'] = $this->normalizeMoneda($data['monto'] ?? null);
+
+        $out['fecha_firma'] = $this->formatFecha($data['fecha_firma'] ?? null);
+
+        $out['fecha_inicio'] = $this->formatFecha($data['fecha_inicio'] ?? null);
+
+        $out['fecha_fin'] = $this->formatFecha($data['fecha_fin'] ?? null);
+
+        return $out;
     }
 
 
-    private function extractTipo(string $text): ?string
+    private function normalizeTipo(?string $tipo): ?string
     {
-        if (preg_match('/CONTRATO DE\s+(.*?)(?:NÚMERO|$)/iu', $text, $m)) {
-            return trim($m[1]);
+        if (!$tipo) return null;
+
+        $tipo = strtoupper($tipo);
+
+        if (str_contains($tipo, 'SERVICIO')) {
+            return 'SERVICIOS';
         }
-        return null;
+
+        if (str_contains($tipo, 'ARRENDAMIENTO')) {
+            return 'ARRENDAMIENTO';
+        }
+
+        return $tipo;
     }
 
 
-    private function extractProveedor(string $text): ?string
+    private function normalizeProveedor(?string $p): ?string
     {
-        if (preg_match('/[A-ZÁÉÍÓÚÑ ]+S\.A\. DE C\.V\./u', $text, $m)) {
-            return trim($m[0]);
-        }
-        return null;
+        if (!$p) return null;
+
+        return trim($p);
     }
 
 
-    private function extractRFC(string $text): ?string
+    private function normalizeDependencia(?string $d): ?string
     {
-        if (preg_match('/[A-Z]{3,4}\d{6}[A-Z0-9]{3}/', $text, $m)) {
-            return $m[0];
-        }
-        return null;
+        if (!$d) return null;
+
+        return trim($d);
     }
 
 
-    private function extractDependencia(string $text): ?string
-    {  
-        
-        // Si falla, fallback más general hasta palabras típicas que marcan el final
-        if (preg_match('/Secretaría\s+(.+?)(?:acredita|,|\.|\d)/u', $text, $m)) {
-            return trim($m[1]);
-        }
-            
-        // Primero intento con delimitadores más precisos
-        if (preg_match('/Secretaría\s+([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑáéíóúñ\s]*?)(?=\s+(CONTRATO|OBJETO|R\.F\.C\.|[0-9]))/u', $text, $m)) {
-            return trim($m[1]);
-        }
-        
-        return null;
+    private function normalizeMonto(?string $m): ?float
+    {
+        if (!$m) return 0;
+
+        $m = str_replace(',', '', $m);
+
+        return floatval($m);
     }
 
 
-    private function extractMonto(string $text): ?float
+    private function normalizeMoneda(?string $m): string
     {
-        if (preg_match('/\$ ?([\d,]+\.\d+)/', $text, $m)) {
-            return floatval(str_replace(',', '', $m[1]));
-        }
-        return null;
+        if ($m) return 'MXN';
+
+        return 'MXN';
     }
 
 
-    private function extractMoneda(string $text): ?string
+    private function formatFecha(?string $fechaTexto): ?string
     {
-        if (strpos($text, '$') !== false) {
-            return 'MXN';
-        }
-        return null;
-    }
+        if (!$fechaTexto) return null;
 
-
-    private function extractFechaFirma(string $text): ?string
-    {
-        if (preg_match('/(\d{1,2} de [a-záéíóúñ]+ del año \d{4})/iu', $text, $m)) {
-            // Convertir a formato YYYY-MM-DD
-            return $this->formatFecha($m[1]);
-        }
-        return null;
-    }
-
-
-    private function extractFechaInicio(string $text): ?string
-    {
-        // Primera fecha en el texto
-        if (preg_match_all('/(\d{1,2} de [a-záéíóúñ]+ (?:del año |de )?\d{4})/iu', $text, $matches)) {
-            return $this->formatFecha($matches[1][0]);
-        }
-        return null;
-    }
-
-
-    private function extractFechaFin(string $text): ?string
-    {
-        // Última fecha en el texto
-        if (preg_match_all('/(\d{1,2} de [a-záéíóúñ]+ (?:del año |de )?\d{4})/iu', $text, $matches)) {
-            return $this->formatFecha(end($matches[1]));
-        }
-        return null;
-    }
-
-
-    private function formatFecha(string $fechaTexto): ?string
-    {
         $meses = [
             'enero'=>'01','febrero'=>'02','marzo'=>'03','abril'=>'04','mayo'=>'05','junio'=>'06',
             'julio'=>'07','agosto'=>'08','septiembre'=>'09','octubre'=>'10','noviembre'=>'11','diciembre'=>'12'
         ];
 
         if (preg_match('/(\d{1,2}) de ([a-záéíóúñ]+) (?:del año |de )?(\d{4})/iu', $fechaTexto, $m)) {
+
             $dia = str_pad($m[1], 2, '0', STR_PAD_LEFT);
             $mes = $meses[strtolower($m[2])] ?? '01';
             $anio = $m[3];
+
             return "$anio-$mes-$dia";
         }
 

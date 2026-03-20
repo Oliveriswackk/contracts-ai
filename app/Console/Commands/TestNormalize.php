@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Services\PdfTextExtractor;
 use App\Services\ContractNormalizer;
+use App\Services\Mappers\ContractMapper;
 
 class TestNormalize extends Command
 {
@@ -20,6 +21,7 @@ class TestNormalize extends Command
 
         $extractor = new PdfTextExtractor();
         $normalizer = new ContractNormalizer();
+        $mapper = new ContractMapper();
 
         $bar = $this->output->createProgressBar(1);
         $bar->start();
@@ -27,13 +29,11 @@ class TestNormalize extends Command
         $text = $extractor->extract(
             $path,
 
-            // progress callback
             function ($current, $total) use ($bar) {
                 $bar->setMaxSteps($total);
                 $bar->advance();
             },
 
-            // log callback
             function ($msg) use ($bar) {
 
                 $bar->clear();
@@ -49,7 +49,12 @@ class TestNormalize extends Command
 
         $this->output->writeln("");
 
-        $data = $normalizer->normalize($text);
+        $mapper = new ContractMapper();
+        $normalizer = new ContractNormalizer();
+
+        $mapped = $mapper->map($text);
+
+        $data = $normalizer->normalize($mapped);
 
         print_r($data);
     }
