@@ -6,6 +6,8 @@ use Illuminate\Console\Command;
 use App\Services\PdfTextExtractor;
 use App\Services\ContractNormalizer;
 use App\Services\Mappers\MapperFactory;
+use App\Services\Mappers\GenericContractMapper;
+
 
 class TestNormalize extends Command
 {
