@@ -2,7 +2,7 @@
 
 namespace App\Services\Mappers;
 
-class ContractMapper
+class ContractMapper implements MapperInterface
 {
     public function map(string $text): array
     {

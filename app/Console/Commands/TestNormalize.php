@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Services\PdfTextExtractor;
 use App\Services\ContractNormalizer;
-use App\Services\Mappers\ContractMapper;
+use App\Services\Mappers\MapperFactory;
 
 class TestNormalize extends Command
 {
@@ -21,7 +21,6 @@ class TestNormalize extends Command
 
         $extractor = new PdfTextExtractor();
         $normalizer = new ContractNormalizer();
-        $mapper = new ContractMapper();
 
         $bar = $this->output->createProgressBar(1);
         $bar->start();
@@ -49,11 +48,13 @@ class TestNormalize extends Command
 
         $this->output->writeln("");
 
-        $mapper = new ContractMapper();
-        $normalizer = new ContractNormalizer();
+        // Factory decide qué mapper usar
+        $mapper = MapperFactory::make($text);
 
+        // Mapper extrae
         $mapped = $mapper->map($text);
 
+        // Normalizer limpia
         $data = $normalizer->normalize($mapped);
 
         print_r($data);
