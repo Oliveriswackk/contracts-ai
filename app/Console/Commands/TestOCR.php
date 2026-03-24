@@ -14,11 +14,11 @@ class TestOCR extends Command
 
     public function handle()
     {
-        $pdfPath = storage_path('app/sample_scanned.pdf');
+        $pdfPath = storage_path('app/adBienes_23254.pdf');
         $outputDir = storage_path('app/ocr_output/');
 
         if (!file_exists($pdfPath)) {
-            $this->error("No existe sample_scanned.pdf en storage/app");
+            $this->error("No existe adBienes_23254.pdf en storage/app");
             return;
         }
 
