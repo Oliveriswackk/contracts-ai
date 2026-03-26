@@ -22,7 +22,7 @@ class TestNormalize extends Command
     {
         $file = $this->argument('file');
 
-        $path = storage_path("app/$file");
+        $path = storage_path("app/PDFs/$file");
 
         $extractor = new PdfTextExtractor();
         $normalizer = new ContractNormalizer();

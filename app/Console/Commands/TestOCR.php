@@ -18,7 +18,7 @@ class TestOCR extends Command
         $outputDir = storage_path('app/ocr_output/');
 
         if (!file_exists($pdfPath)) {
-            $this->error("No existe adBienes_23254.pdf en storage/app");
+            $this->error("No existe adBienes_23254.pdf en storage/app/PDFs");
             return;
         }
 

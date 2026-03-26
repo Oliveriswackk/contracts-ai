@@ -85,16 +85,38 @@ class ContractNormalizer
     }
 
 
-    private function formatFecha(?string $fechaTexto): ?string
+    private function formatFecha(?string $fecha): ?string
     {
-        if (!$fechaTexto) return null;
+        if (!$fecha) {
+            return null;
+        }
 
-        $meses = [
-            'enero'=>'01','febrero'=>'02','marzo'=>'03','abril'=>'04','mayo'=>'05','junio'=>'06',
-            'julio'=>'07','agosto'=>'08','septiembre'=>'09','octubre'=>'10','noviembre'=>'11','diciembre'=>'12'
-        ];
+        // Formato X/Y/Z
+        if (preg_match('/(\d{2})\/(\d{2})\/(\d{4})/', $fecha, $m)) {
+            return $m[3] . '-' . $m[2] . '-' . $m[1];
+        }
 
-        if (preg_match('/(\d{1,2}) de ([a-záéíóúñ]+) (?:del año |de )?(\d{4})/iu', $fechaTexto, $m)) {
+        // Formato X de Y de Z
+        if (preg_match(
+            '/(\d{1,2}) de ([a-záéíóúñ]+)(?: del año| de)? (\d{4})/iu',
+            $fecha,
+            $m
+        )) {
+
+            $meses = [
+                'enero' => '01',
+                'febrero' => '02',
+                'marzo' => '03',
+                'abril' => '04',
+                'mayo' => '05',
+                'junio' => '06',
+                'julio' => '07',
+                'agosto' => '08',
+                'septiembre' => '09',
+                'octubre' => '10',
+                'noviembre' => '11',
+                'diciembre' => '12',
+            ];
 
             $dia = str_pad($m[1], 2, '0', STR_PAD_LEFT);
             $mes = $meses[strtolower($m[2])] ?? '01';
