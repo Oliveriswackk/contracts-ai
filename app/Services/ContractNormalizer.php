@@ -29,6 +29,13 @@ class ContractNormalizer
 
         $out['fecha_fin'] = $this->formatFecha($data['fecha_fin'] ?? null);
 
+        if ($out['fecha_inicio'] && $out['fecha_fin'] && $out['fecha_fin'] < $out['fecha_inicio']) {
+            $out['fecha_fin'] = null;
+        }
+
+        $out['monto'] = $this->validateMonto($out['monto']);
+        $out['rfc_proveedor'] = $this->validateRfc($out['rfc_proveedor']);
+
         return $out;
     }
 
@@ -127,4 +134,54 @@ class ContractNormalizer
 
         return null;
     }
+
+    private function validateMonto($monto): ?float
+    {
+        if (!is_numeric($monto)) {
+            return null;
+        }
+
+        $monto = (float) $monto;
+
+        if ($monto <= 0) {
+            return null;
+        }
+
+        return $monto;
+    }
+
+    private function validateRfc(?string $rfc): ?string
+    {
+        if (!$rfc) {
+            return null;
+        }
+
+        $rfc = strtoupper(trim($rfc));
+
+        if (!preg_match('/^[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}$/', $rfc)) {
+            return null;
+        }
+
+        return $rfc;
+    }
 }
+
+/**
+ * ContractNormalizer
+ *
+ * PRINCIPIO DE DISEÑO:
+ * Este sistema prioriza la precisión sobre la completitud.
+ *
+ * - Los campos solo deben llenarse si se extraen con certeza
+ * - Valores inválidos o dudosos DEBEN ser null
+ * - No se permite inferir, adivinar ni “completar” datos
+ *
+ * Esta clase es la capa final antes de la salida.
+ * Garantiza:
+ * - Consistencia de datos
+ * - Integridad
+ * - Fallos seguros (safe failure)
+ *
+ * NOTA:
+ * Cualquier integración futura con IA debe pasar por esta capa.
+ */

@@ -4,6 +4,24 @@ namespace App\Services\Mappers;
 
 use Illuminate\Support\Facades\Log;
 
+/**
+ * BaseContractMapper
+ *
+ * SOLO CAPA DE EXTRACCIÓN.
+ * 
+ * Responsabilidades:
+ * - Extraer datos crudos del texto usando patrones deterministas (regex)
+ *
+ * Restricciones:
+ * - No validar datos
+ * - No corregir datos
+ * - No asumir valores si no están claros
+ *
+ * Si no se puede extraer un dato, regresar null.
+ *
+ * La validación final la realiza ContractNormalizer.
+ */
+
 abstract class BaseContractMapper
 {
     abstract public function map(string $text): array;
@@ -43,19 +61,32 @@ abstract class BaseContractMapper
 
     protected function extractRFC(string $text): ?string
     {
-        // Busca RFC en el bloque de declaraciones del PROVEEDOR (sección II)
-        if (preg_match(
-            '/(?:II\.|PROVEEDOR|proveedor)[^R]{0,300}Contribuyentes[:\s]+([A-Z]{3,4}\d{6}[A-Z0-9]{3})/us',
-            $text,
-            $m
-        )) {
-            return $m[1];
-        }
+        // Busca RFC cercano al bloque del proveedor/prestador.
+        if (preg_match_all('/\b([A-Z]{3,4}\d{6}[A-Z0-9]{3})\b/u', $text, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[1] as $entry) {
+                $rfc = $entry[0];
+                $offset = $entry[1];
 
-        // Fallback: toma el segundo RFC único del documento
-        if (preg_match_all('/\b([A-Z]{3,4}\d{6}[A-Z0-9]{3})\b/', $text, $m)) {
-            $unique = array_values(array_unique($m[1]));
-            return $unique[1] ?? $unique[0] ?? null;
+                $start = max(0, $offset - 260);
+                $context = mb_substr($text, $start, $offset - $start);
+
+                if (
+                    preg_match('/(?:PROVEEDOR|PRESTADOR|DECLARA\s+“?EL\s+(?:PROVEEDOR|PRESTADOR)|II\.\s*-)/iu', $context)
+                    && !preg_match('/SECRETAR[ÍI]A\s+EJECUTIVA/iu', $context)
+                ) {
+                    return $rfc;
+                }
+            }
+
+            $unique = array_values(array_unique(array_map(fn($m) => $m[0], $matches[1])));
+
+            foreach ($unique as $rfc) {
+                if (!preg_match('/^SES\d{6}[A-Z0-9]{3}$/', $rfc)) {
+                    return $rfc;
+                }
+            }
+
+            return $unique[0] ?? null;
         }
 
         return null;
@@ -169,6 +200,18 @@ abstract class BaseContractMapper
             return $m[0][1];
         }
 
+        if (preg_match(
+            '/(\d{1,2}\s+de\s+[a-záéíóúñ]+\s+de\s+\d{4})\s+(?:a|al|hasta)\s+(\d{1,2}\s+de\s+[a-záéíóúñ]+\s+de\s+\d{4})/iu',
+            $text,
+            $m
+        )) {
+            return trim($m[1]);
+        }
+
+        if (preg_match('/a\s+partir\s+de\s+la\s+fecha\s+de\s+su\s+firma/iu', $text)) {
+            return $this->extractFechaFirma($text);
+        }
+
         return null;
     }
 
@@ -196,6 +239,18 @@ abstract class BaseContractMapper
             }
 
             return $m[0][2];
+        }
+
+        if (preg_match(
+            '/(\d{1,2}\s+de\s+[a-záéíóúñ]+\s+de\s+\d{4})\s+(?:a|al|hasta)\s+(\d{1,2}\s+de\s+[a-záéíóúñ]+\s+de\s+\d{4})/iu',
+            $text,
+            $m
+        )) {
+            return trim($m[2]);
+        }
+
+        if (preg_match('/hasta\s+el\s+d[íi]a\s+(\d{1,2}\s+de\s+[a-záéíóúñ]+\s+de\s+\d{4})/iu', $text, $m)) {
+            return trim($m[1]);
         }
 
         return null;
