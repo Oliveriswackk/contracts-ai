@@ -2,7 +2,7 @@
 
 namespace App\Services\Mappers;
 
-class GenericContractMapper implements MapperInterface
+class GenericContractMapper extends BaseContractMapper implements MapperInterface
 {
     public function map(string $text): array
     {

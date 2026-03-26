@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Services\PdfTextExtractor;
 use App\Services\ContractNormalizer;
-use App\Services\Mappers\MapperFactory;
 use App\Services\Mappers\MapperRegistry;
 use App\Services\Mappers\PrestacionServiciosMapper;
 use App\Services\Mappers\AdquisicionBienesMapper;
@@ -93,8 +92,8 @@ class TestNormalize extends Command
         );
 
 
-        // Factory decide qué mapper usar
-        $mapper = MapperFactory::make($text);
+        // ContractMapper orquesta selección y delegación
+        $mapper = new ContractMapper();
 
 
         // Mapper extrae

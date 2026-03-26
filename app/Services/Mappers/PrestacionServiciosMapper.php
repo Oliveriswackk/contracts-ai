@@ -8,12 +8,16 @@ class PrestacionServiciosMapper extends BaseContractMapper implements MapperInte
 {
     public function map(string $text): array
     {
-        $mapper = new ContractMapper();
-
-        $data = $mapper->map($text);
-
-        $data['tipo'] = 'PRESTACION_SERVICIOS';
-
-        return $data;
+        return [
+            'numero' => $this->extractNumero($text),
+            'tipo' => 'PRESTACION_SERVICIOS',
+            'proveedor' => $this->extractProveedor($text),
+            'rfc_proveedor' => $this->extractRFC($text),
+            'dependencia' => $this->extractDependencia($text),
+            'monto' => $this->extractMonto($text),
+            'fecha_firma' => $this->extractFechaFirma($text),
+            'fecha_inicio' => $this->extractFechaInicio($text),
+            'fecha_fin' => $this->extractFechaFin($text),
+        ];
     }
 }
