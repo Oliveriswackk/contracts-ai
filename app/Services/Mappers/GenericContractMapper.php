@@ -7,15 +7,19 @@ class GenericContractMapper extends BaseContractMapper implements MapperInterfac
     public function map(string $text): array
     {
         return [
-            'numero' => null,
-            'tipo' => null,
-            'proveedor' => null,
-            'rfc_proveedor' => null,
-            'dependencia' => null,
-            'monto' => null,
-            'fecha_firma' => null,
-            'fecha_inicio' => null,
-            'fecha_fin' => null,
+            'numero' => $this->wrap(null),
+            'tipo' => [
+                'value' => null,
+                'confidence' => 0.0,
+                'sources' => ['generic']
+            ],
+            'proveedor' => $this->wrap(null),
+            'rfc_proveedor' => $this->wrap(null),
+            'dependencia' => $this->wrap(null),
+            'monto' => $this->wrap(null),
+            'fecha_firma' => $this->wrap(null),
+            'fecha_inicio' => $this->wrap(null),
+            'fecha_fin' => $this->wrap(null),
         ];
     }
 }

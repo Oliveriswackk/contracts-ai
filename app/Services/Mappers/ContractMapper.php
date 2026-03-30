@@ -2,18 +2,35 @@
 
 namespace App\Services\Mappers;
 
+use App\Services\Text\TextPreprocessor;
+use Illuminate\Support\Facades\Log;
+
 class ContractMapper extends BaseContractMapper implements MapperInterface
 {
     public function map(string $text): array
     {
-        $class = MapperRegistry::resolve($text);
+        $text = TextPreprocessor::normalize($text);
 
-        if ($class === self::class) {
-            $class = GenericContractMapper::class;
-        }
+        $class = MapperRegistry::resolve($text);
 
         $mapper = new $class();
 
-        return $mapper->map($text);
+        $result = $mapper->map($text);
+
+        // Detectar campos nulos correctamente
+        $nullFields = array_keys(array_filter(
+            $result,
+            fn($v) => is_array($v) && is_null($v['value'] ?? null)
+        ));
+
+        if (!empty($nullFields)) {
+            Log::info('contract_mapper.null_fields', [
+                'fields' => $nullFields,
+                'mapper' => $class,
+                'snippet' => mb_substr($text, 0, 500)
+            ]);
+        }
+
+        return $result;
     }
 }

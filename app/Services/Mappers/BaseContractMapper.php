@@ -26,6 +26,32 @@ abstract class BaseContractMapper
 {
     abstract public function map(string $text): array;
 
+    protected function wrap($value, $text = null): array
+    {
+        return [
+            'value' => $value,
+            'confidence' => $this->calculateConfidence($value, $text),
+            'sources' => $value !== null ? ['regex'] : []
+        ];
+    }
+
+
+    protected function calculateConfidence($value, $text = null): float
+    {
+        if (is_null($value)) return 0.0;
+
+        $score = 0.6;
+
+        if (!empty($value)) $score += 0.2;
+
+        if ($text && str_contains($text, (string)$value)) {
+            $score += 0.2;
+        }
+
+        return min($score, 1.0);
+    }
+
+
     protected function extractNumero(string $text): ?string
     {
         if (preg_match('/SESEA\/[A-Z]+\/\d+\/\d+/', $text, $m)) {
@@ -33,6 +59,7 @@ abstract class BaseContractMapper
         }
         return null;
     }
+
 
     protected function extractProveedor(string $text): ?string
     {
@@ -58,6 +85,7 @@ abstract class BaseContractMapper
 
         return null;
     }
+
 
     protected function extractRFC(string $text): ?string
     {
@@ -92,6 +120,7 @@ abstract class BaseContractMapper
         return null;
     }
 
+    
     protected function extractDependencia(string $text): ?string
     {
         if (preg_match(
@@ -107,6 +136,7 @@ abstract class BaseContractMapper
 
         return null;
     }
+
 
     protected function extractMonto(string $text): ?string
     {
@@ -135,6 +165,7 @@ abstract class BaseContractMapper
 
         return null;
     }
+
 
     protected function extractFechaFirma(string $text): ?string
     {

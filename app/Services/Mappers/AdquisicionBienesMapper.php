@@ -9,15 +9,19 @@ class AdquisicionBienesMapper extends BaseContractMapper implements MapperInterf
     public function map(string $text): array
     {
         return [
-            'numero' => $this->extractNumero($text),
-            'tipo' => 'ADQUISICION_BIENES',
-            'proveedor' => $this->extractProveedor($text),
-            'rfc_proveedor' => $this->extractRFC($text),
-            'dependencia' => $this->extractDependencia($text),
-            'monto' => $this->extractMonto($text),
-            'fecha_firma' => $this->extractFechaFirma($text),
-            'fecha_inicio' => $this->extractFechaInicio($text),
-            'fecha_fin' => $this->extractFechaFin($text),
+            'numero' => $this->wrap($this->extractNumero($text)),
+            'tipo' => [
+                'value' => 'ADQUISICION_BIENES',
+                'confidence' => 1.0,
+                'sources' => ['static']
+            ],
+            'proveedor' => $this->wrap($this->extractProveedor($text), $text),
+            'rfc_proveedor' => $this->wrap($this->extractRFC($text)),
+            'dependencia' => $this->wrap($this->extractDependencia($text)),
+            'monto' => $this->wrap($this->extractMonto($text), $text),
+            'fecha_firma' => $this->wrap($this->extractFechaFirma($text)),
+            'fecha_inicio' => $this->wrap($this->extractFechaInicio($text)),
+            'fecha_fin' => $this->wrap($this->extractFechaFin($text)),
         ];
     }
 }
