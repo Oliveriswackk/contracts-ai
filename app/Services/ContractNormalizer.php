@@ -15,43 +15,76 @@ class ContractNormalizer
      * Este es el último filtro antes de salida.
      */
 
+    private const CONFIDENCE_THRESHOLD = 0.7;
+
+    
     public function normalize(array $data): array
     {
         $out = [];
 
-        $out['numero'] = $data['numero']['value'] ?? null;
+        $numero = $this->acceptIfConfident($data['numero'] ?? null);
+        $tipo = $this->acceptIfConfident($data['tipo'] ?? null);
+        $proveedor = $this->acceptIfConfident($data['proveedor'] ?? null);
+        $rfc = $this->acceptIfConfident($data['rfc_proveedor'] ?? null);
+        $dependencia = $this->acceptIfConfident($data['dependencia'] ?? null);
+        $monto = $this->acceptIfConfident($data['monto'] ?? null);
+        $fechaFirma = $this->acceptIfConfident($data['fecha_firma'] ?? null);
+        $fechaInicio = $this->acceptIfConfident($data['fecha_inicio'] ?? null);
+        $fechaFin = $this->acceptIfConfident($data['fecha_fin'] ?? null);
 
-        $out['tipo'] = $this->normalizeTipo($data['tipo']['value'] ?? null);
+        $out['numero'] = $numero;
 
-        $out['proveedor'] = $this->normalizeProveedor($data['proveedor']['value'] ?? null);
+        $out['tipo'] = $this->normalizeTipo($tipo);
 
-        $out['rfc_proveedor'] = $this->validateRfc($data['rfc_proveedor']['value'] ?? null);
+        $out['proveedor'] = $this->normalizeProveedor($proveedor);
 
-        $out['dependencia'] = $this->normalizeDependencia($data['dependencia']['value'] ?? null);
+        $out['rfc_proveedor'] = $this->validateRfc($rfc);
 
-        $monto = $this->normalizeMonto($data['monto']['value'] ?? null);
+        $out['dependencia'] = $this->normalizeDependencia($dependencia);
 
-        $out['monto'] = $monto;
+        $montoNormalized = $this->normalizeMonto($monto);
+
+        $out['monto'] = $montoNormalized;
 
         /*
         * MONEDA:
         * Sistema cerrado a MXN por definición de dominio.
         * No se realiza detección automática.
         */
-        $out['moneda'] = $monto !== null ? 'MXN' : null;
+        $out['moneda'] = $montoNormalized !== null ? 'MXN' : null;
 
-        $out['fecha_firma'] = $this->formatFecha($data['fecha_firma']['value'] ?? null);
+        $fechaFirma = $this->formatFecha($fechaFirma);
+        $fechaInicio = $this->formatFecha($fechaInicio);
+        $fechaFin = $this->formatFecha($fechaFin);
 
-        $out['fecha_inicio'] = $this->formatFecha($data['fecha_inicio']['value'] ?? null);
+        $out['fecha_firma'] = $fechaFirma;
+        $out['fecha_inicio'] = $fechaInicio;
+        $out['fecha_fin'] = $fechaFin;
 
-        $out['fecha_fin'] = $this->formatFecha($data['fecha_fin']['value'] ?? null);
-
-        if ($out['fecha_inicio'] && $out['fecha_fin'] && $out['fecha_fin'] < $out['fecha_inicio']) {
+        if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
             $out['fecha_fin'] = null;
         }
 
         return $out;
     }
+
+
+    /**
+     * Extrae value y valida confidence
+     */
+    private function acceptIfConfident($field)
+    {
+        if (!is_array($field)) {
+            return $field;
+        }
+
+        $confidence = $field['confidence'] ?? 0.0;
+
+        return $confidence >= self::CONFIDENCE_THRESHOLD
+            ? ($field['value'] ?? null)
+            : null;
+    }
+
 
     private function normalizeTipo(?string $tipo): ?string
     {
@@ -74,15 +107,18 @@ class ContractNormalizer
         return $tipo;
     }
 
+
     private function normalizeProveedor(?string $p): ?string
     {
         return $p ? trim($p) : null;
     }
 
+
     private function normalizeDependencia(?string $d): ?string
     {
         return $d ? trim($d) : null;
     }
+
 
     private function normalizeMonto(?string $m): ?float
     {
@@ -98,6 +134,7 @@ class ContractNormalizer
 
         return $m > 0 ? $m : null;
     }
+
 
     private function formatFecha(?string $fecha): ?string
     {
@@ -139,6 +176,7 @@ class ContractNormalizer
 
         return null;
     }
+
 
     private function validateRfc(?string $rfc): ?string
     {
