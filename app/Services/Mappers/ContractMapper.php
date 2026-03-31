@@ -9,6 +9,10 @@ class ContractMapper extends BaseContractMapper implements MapperInterface
 {
     public function map(string $text): array
     {
+        // Limitar tamaño para evitar explosión de memoria
+        $text = mb_substr($text, 0, 20000);
+
+        // Preprocesar solo lo necesario
         $text = TextPreprocessor::normalize($text);
 
         $class = MapperRegistry::resolve($text);

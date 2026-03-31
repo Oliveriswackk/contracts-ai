@@ -5,7 +5,11 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Services\PdfTextExtractor;
 use App\Services\ContractNormalizer;
+use App\Services\ContractProcessingPipeline;
+use App\Services\ConfidenceEvaluator;
+use App\Services\DecisionEngine;
 use App\Services\Mappers\ContractMapper;
+
 
 class TestNormalize extends Command
 {
@@ -20,7 +24,6 @@ class TestNormalize extends Command
         $path = storage_path("app/PDFs/$file");
 
         $extractor = new PdfTextExtractor();
-        $normalizer = new ContractNormalizer();
 
         $bar = $this->output->createProgressBar(1);
         $bar->start();
@@ -48,13 +51,16 @@ class TestNormalize extends Command
             $text
         );
 
-        // Mapping
+        $pipeline = new ContractProcessingPipeline(
+            new ContractNormalizer(),
+            new ConfidenceEvaluator(),
+            new DecisionEngine()
+        );
+
         $mapper = new ContractMapper();
-        $mapped = $mapper->map($text);
 
-        // Normalización final
-        $data = $normalizer->normalize($mapped);
+        $result = $pipeline->process($mapper, $text);
 
-        print_r($data);
+        print_r($result);
     }
 }
