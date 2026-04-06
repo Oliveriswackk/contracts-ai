@@ -24,18 +24,17 @@ class ContractProcessingPipeline
     }
 
     
-    public function process(MapperInterface $mapper, string $text): array
+    public function process($mapper, string $text): array
     {
-        // 1. Extracción con evidencia
         $raw = $mapper->map($text);
 
-        // 2. Normalización (filtro determinista)
-        $normalized = $this->normalizer->normalize($raw);
+        $normalized = $this->normalizer->normalize($raw); // DTO
 
-        // 3. Evaluación de confianza
-        $confidence = $this->evaluator->evaluate($raw, $normalized);
+        $confidence = $this->evaluator->evaluate(
+            $raw,
+            $normalized->toArray()
+        );
 
-        // 4. Decisión
         $decision = $this->decisionEngine->decide(
             $confidence['global_score'],
             $confidence['summary']
@@ -44,8 +43,7 @@ class ContractProcessingPipeline
         return [
             'data' => $normalized,
             'confidence' => $confidence,
-            'classification' => $decision['classification'],
-            'decision' => $decision['decision'],
+            'decision' => $decision,
         ];
     }
 }

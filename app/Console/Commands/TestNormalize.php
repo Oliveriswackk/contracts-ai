@@ -13,9 +13,12 @@ use App\Services\Mappers\ContractMapper;
 
 class TestNormalize extends Command
 {
+
     protected $signature = 'test:normalize {file}';
 
+
     protected $description = 'Test normalize';
+
 
     public function handle()
     {
@@ -45,11 +48,13 @@ class TestNormalize extends Command
         $bar->finish();
         $this->output->writeln("");
 
+
         // DEBUG OCR
         file_put_contents(
             storage_path('app/debug.txt'),
             $text
         );
+
 
         $pipeline = new ContractProcessingPipeline(
             new ContractNormalizer(),
@@ -57,10 +62,16 @@ class TestNormalize extends Command
             new DecisionEngine()
         );
 
+        
         $mapper = new ContractMapper();
+
 
         $result = $pipeline->process($mapper, $text);
 
-        print_r($result);
+        print_r([
+            'data' => is_object($result['data']) ? $result['data']->toArray() : $result['data'],
+            'confidence' => $result['confidence'],
+            'decision' => $result['decision'],
+        ]);
     }
 }

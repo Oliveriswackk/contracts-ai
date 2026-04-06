@@ -2,26 +2,21 @@
 
 namespace App\Services;
 
+use App\Services\DTO\ContractDTO;
+
 class ContractNormalizer
 {
     /**
-     * ContractNormalizer
-     *
      * PRINCIPIO:
      * - No inferir
      * - No rellenar
      * - Solo aceptar lo confiable
-     *
-     * Este es el último filtro antes de salida.
      */
 
     private const CONFIDENCE_THRESHOLD = 0.7;
 
-    
-    public function normalize(array $data): array
+    public function normalize(array $data): ContractDTO
     {
-        $out = [];
-
         $numero = $this->acceptIfConfident($data['numero'] ?? null);
         $tipo = $this->acceptIfConfident($data['tipo'] ?? null);
         $proveedor = $this->acceptIfConfident($data['proveedor'] ?? null);
@@ -32,46 +27,36 @@ class ContractNormalizer
         $fechaInicio = $this->acceptIfConfident($data['fecha_inicio'] ?? null);
         $fechaFin = $this->acceptIfConfident($data['fecha_fin'] ?? null);
 
-        $out['numero'] = $numero;
+        $tipo = $this->normalizeTipo($tipo);
+        $proveedor = $this->normalizeProveedor($proveedor);
+        $rfc = $this->validateRfc($rfc);
+        $dependencia = $this->normalizeDependencia($dependencia);
+        $monto = $this->normalizeMonto($monto);
 
-        $out['tipo'] = $this->normalizeTipo($tipo);
-
-        $out['proveedor'] = $this->normalizeProveedor($proveedor);
-
-        $out['rfc_proveedor'] = $this->validateRfc($rfc);
-
-        $out['dependencia'] = $this->normalizeDependencia($dependencia);
-
-        $montoNormalized = $this->normalizeMonto($monto);
-
-        $out['monto'] = $montoNormalized;
-
-        /*
-        * MONEDA:
-        * Sistema cerrado a MXN por definición de dominio.
-        * No se realiza detección automática.
-        */
-        $out['moneda'] = $montoNormalized !== null ? 'MXN' : null;
+        $moneda = $monto !== null ? 'MXN' : null;
 
         $fechaFirma = $this->formatFecha($fechaFirma);
         $fechaInicio = $this->formatFecha($fechaInicio);
         $fechaFin = $this->formatFecha($fechaFin);
 
-        $out['fecha_firma'] = $fechaFirma;
-        $out['fecha_inicio'] = $fechaInicio;
-        $out['fecha_fin'] = $fechaFin;
-
         if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
-            $out['fecha_fin'] = null;
+            $fechaFin = null;
         }
 
-        return $out;
+        return new ContractDTO([
+            'numero' => $numero,
+            'tipo' => $tipo,
+            'dependencia' => $dependencia,
+            'proveedor' => $proveedor,
+            'rfc_proveedor' => $rfc,
+            'monto' => $monto,
+            'moneda' => $moneda,
+            'fecha_firma' => $fechaFirma,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
+        ]);
     }
 
-
-    /**
-     * Extrae value y valida confidence
-     */
     private function acceptIfConfident($field)
     {
         if (!is_array($field)) {
@@ -84,7 +69,6 @@ class ContractNormalizer
             ? ($field['value'] ?? null)
             : null;
     }
-
 
     private function normalizeTipo(?string $tipo): ?string
     {
@@ -107,18 +91,15 @@ class ContractNormalizer
         return $tipo;
     }
 
-
     private function normalizeProveedor(?string $p): ?string
     {
         return $p ? trim($p) : null;
     }
 
-
     private function normalizeDependencia(?string $d): ?string
     {
         return $d ? trim($d) : null;
     }
-
 
     private function normalizeMonto(?string $m): ?float
     {
@@ -135,12 +116,9 @@ class ContractNormalizer
         return $m > 0 ? $m : null;
     }
 
-
     private function formatFecha(?string $fecha): ?string
     {
-        if (!$fecha) {
-            return null;
-        }
+        if (!$fecha) return null;
 
         if (preg_match('/(\d{2})\/(\d{2})\/(\d{4})/', $fecha, $m)) {
             return "{$m[3]}-{$m[2]}-{$m[1]}";
@@ -177,12 +155,9 @@ class ContractNormalizer
         return null;
     }
 
-
     private function validateRfc(?string $rfc): ?string
     {
-        if (!$rfc) {
-            return null;
-        }
+        if (!$rfc) return null;
 
         $rfc = strtoupper(trim($rfc));
 
