@@ -23,6 +23,7 @@ class ContractNormalizer
         $rfc = $this->acceptIfConfident($data['rfc_proveedor'] ?? null);
         $dependencia = $this->acceptIfConfident($data['dependencia'] ?? null);
         $monto = $this->acceptIfConfident($data['monto'] ?? null);
+
         $fechaFirma = $this->acceptIfConfident($data['fecha_firma'] ?? null);
         $fechaInicio = $this->acceptIfConfident($data['fecha_inicio'] ?? null);
         $fechaFin = $this->acceptIfConfident($data['fecha_fin'] ?? null);
@@ -39,8 +40,30 @@ class ContractNormalizer
         $fechaInicio = $this->formatFecha($fechaInicio);
         $fechaFin = $this->formatFecha($fechaFin);
 
+        // == VALIDACIONES == 
+
+        // 1. fecha_fin no puede ser menor que fecha_inicio
         if ($fechaInicio && $fechaFin && $fechaFin < $fechaInicio) {
             $fechaFin = null;
+        }
+
+        // 2. fecha_firma no puede ser absurda respecto al contrato
+        $referenceDate = $fechaInicio ?? $fechaFin;
+
+        if ($fechaFirma && $referenceDate) {
+            $diffYears = abs(
+                (int)substr($referenceDate, 0, 4) -
+                (int)substr($fechaFirma, 0, 4)
+            );
+
+            if ($diffYears > 5) {
+                $fechaFirma = null;
+            }
+        }
+
+        // 3. fecha_firma no debe ser posterior al inicio
+        if ($fechaFirma && $fechaInicio && $fechaFirma > $fechaInicio) {
+            $fechaFirma = null;
         }
 
         return new ContractDTO([

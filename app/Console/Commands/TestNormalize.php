@@ -9,6 +9,7 @@ use App\Services\ContractProcessingPipeline;
 use App\Services\ConfidenceEvaluator;
 use App\Services\DecisionEngine;
 use App\Services\Mappers\ContractMapper;
+use App\Services\OCDSMapper;
 
 
 class TestNormalize extends Command
@@ -62,16 +63,18 @@ class TestNormalize extends Command
             new DecisionEngine()
         );
 
-        
         $mapper = new ContractMapper();
-
 
         $result = $pipeline->process($mapper, $text);
 
+        $ocdsMapper = new OCDSMapper();
+        $ocds = $ocdsMapper->map($result['data']);
+
         print_r([
-            'data' => is_object($result['data']) ? $result['data']->toArray() : $result['data'],
+            'data' => $result['data']->toArray(),
             'confidence' => $result['confidence'],
             'decision' => $result['decision'],
+            'ocds' => $ocds
         ]);
     }
 }

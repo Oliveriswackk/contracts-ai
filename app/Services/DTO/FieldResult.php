@@ -15,16 +15,19 @@ class FieldResult
         $this->sources = $sources;
     }
 
+
     public function getValue()
     {
         return $this->value;
     }
+
 
     public function getConfidence()
     {
         return $this->confidence;
     }
 
+    
     public function getSources()
     {
         return $this->sources;
