@@ -169,35 +169,31 @@ abstract class BaseContractMapper
 
     protected function extractFechaFirma(string $text): ?string
     {
-        // Patrón 1: "A LOS 06 DÍAS DEL MES DE NOVIEMBRE DE 2023"
-        // Este aparece en el pie de firmas y el OCR lo captura limpio
+        // 1. Patrón fuerte: bloque de firmas (más confiable)
+        if (preg_match(
+            '/(?:firma|firman|suscriben|celebran)[^\.]{0,200}(\d{1,2}\s+de\s+[a-záéíóúñ]+\s+de\s+\d{4})/iu',
+            $text,
+            $m
+        )) {
+            return trim($m[1]);
+        }
+
+        // 2. Patrón clásico formal
         if (preg_match(
             '/A\s+LOS\s+(\d{1,2})\s+D[ÍI]AS?\s+DEL\s+MES\s+DE\s+([A-ZÁÉÍÓÚÑ]+)\s+DE\s+(\d{4})/iu',
             $text,
             $m
         )) {
-            return "0{$m[1]} de " . mb_strtolower($m[2]) . " de {$m[3]}";
+            return str_pad($m[1], 2, '0', STR_PAD_LEFT) . ' de ' . mb_strtolower($m[2]) . ' de ' . $m[3];
         }
 
-        // Patrón 2: "al día 06 de noviembre de YYYY" (cuando el OCR no distorsiona el año)
+        // 3. "al día XX de mes de YYYY"
         if (preg_match(
             '/al\s+d[íi]a\s+(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})/iu',
             $text,
             $m
         )) {
             return "{$m[1]} de {$m[2]} de {$m[3]}";
-        }
-
-        // Patrón 3: última fecha "DD de mes de YYYY" en el documento
-        // (evita fechas del cuerpo del contrato tomando la última)
-        if (preg_match_all(
-            '/(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})/iu',
-            $text,
-            $m,
-            PREG_SET_ORDER
-        )) {
-            $last = end($m);
-            return "{$last[1]} de {$last[2]} de {$last[3]}";
         }
 
         return null;
