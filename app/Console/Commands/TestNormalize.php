@@ -10,6 +10,7 @@ use App\Services\ConfidenceEvaluator;
 use App\Services\DecisionEngine;
 use App\Services\Mappers\ContractMapper;
 use App\Services\OCDSMapper;
+use App\Services\AI\ContractAIFallback;
 
 
 class TestNormalize extends Command
@@ -60,7 +61,8 @@ class TestNormalize extends Command
         $pipeline = new ContractProcessingPipeline(
             new ContractNormalizer(),
             new ConfidenceEvaluator(),
-            new DecisionEngine()
+            new DecisionEngine(),
+            new ContractAIFallback()
         );
 
         $mapper = new ContractMapper();

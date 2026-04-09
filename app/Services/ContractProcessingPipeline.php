@@ -5,31 +5,43 @@ namespace App\Services;
 use App\Services\ContractNormalizer;
 use App\Services\ConfidenceEvaluator;
 use App\Services\DecisionEngine;
-use App\Services\Mappers\MapperInterface;
+use App\Services\AI\ContractAIFallback;
 
 class ContractProcessingPipeline
 {
     private $normalizer;
     private $evaluator;
     private $decisionEngine;
+    private ContractAIFallback $aiFallback;
 
     public function __construct(
         ContractNormalizer $normalizer,
         ConfidenceEvaluator $evaluator,
-        DecisionEngine $decisionEngine
+        DecisionEngine $decisionEngine,
+        ContractAIFallback $aiFallback
     ) {
         $this->normalizer = $normalizer;
         $this->evaluator = $evaluator;
         $this->decisionEngine = $decisionEngine;
+        $this->aiFallback = $aiFallback;
     }
 
-    
     public function process($mapper, string $text): array
     {
         $raw = $mapper->map($text);
 
-        $normalized = $this->normalizer->normalize($raw); // DTO
+        // 1. Normalización inicial
+        $normalized = $this->normalizer->normalize($raw);
 
+        // 2. IA fallback (solo críticos)
+        $aiData = $this->aiFallback->enrich($normalized, $text);
+
+        if (!empty($aiData)) {
+            $raw = array_merge($raw, $this->wrapAIData($aiData));
+            $normalized = $this->normalizer->normalize($raw);
+        }
+
+        // 3. Evaluación
         $confidence = $this->evaluator->evaluate(
             $raw,
             $normalized->toArray()
@@ -45,5 +57,21 @@ class ContractProcessingPipeline
             'confidence' => $confidence,
             'decision' => $decision,
         ];
+    }
+
+
+    private function wrapAIData(array $aiData): array
+    {
+        $wrapped = [];
+
+        foreach ($aiData as $key => $value) {
+            $wrapped[$key] = [
+                'value' => $value,
+                'confidence' => 0.6,
+                'sources' => ['ai']
+            ];
+        }
+
+        return $wrapped;
     }
 }
