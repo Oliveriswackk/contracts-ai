@@ -42,7 +42,7 @@ class ContractAIFallback
     private function extractWithAI(string $text, array $fields): array
     {
         // Reducir texto ANTES de enviarlo a IA
-        $text = $this->reduceText($text);
+        $text = $this->reduceTextByFields($text, $fields);
 
         $prompt = $this->buildPrompt($text, $fields);
 
@@ -60,7 +60,11 @@ class ContractAIFallback
             return [];
         }
 
-        // Manejo seguro de escritura
+        file_put_contents(
+            storage_path('app/ai_context.txt'),
+            $text
+        );
+
         $writeResult = @fwrite($pipes[0], $prompt);
 
         if ($writeResult === false) {
@@ -71,11 +75,7 @@ class ContractAIFallback
 
         fclose($pipes[0]);
 
-        $response = stream_get_contents($pipes[1]);
-        file_put_contents(
-            storage_path('app/ai_raw.txt'),
-            $response
-        );
+        $response = stream_get_contents($pipes[1]);   
 
         fclose($pipes[1]);
 
@@ -112,14 +112,51 @@ PROMPT;
     }
 
 
-    private function reduceText(string $text): string
+    private function reduceTextByFields(string $text, array $fields): string
     {
-        // máximo ~5k chars para IA
-        if (strlen($text) > 5000) {
-            return substr($text, 0, 5000);
+        $length = strlen($text);
+
+        $chunks = [];
+        $added = [];
+
+        $addChunk = function ($key, $value) use (&$chunks, &$added) {
+            if (!isset($added[$key])) {
+                $chunks[] = $value;
+                $added[$key] = true;
+            }
+        };
+
+        // inicio
+        if (
+            in_array('rfc_proveedor', $fields) ||
+            in_array('proveedor', $fields)
+        ) {
+            $addChunk('start', substr($text, 0, min(2000, $length)));
         }
 
-        return $text;
+        // zona media
+        if (in_array('monto', $fields)) {
+            $start = (int) ($length * 0.3);
+            $addChunk(
+                'middle',
+                substr($text, $start, min(2000, $length - $start))
+            );
+        }
+
+        // final
+        if (in_array('fecha_firma', $fields)) {
+            $addChunk(
+                'end',
+                substr($text, max(0, $length - 2000))
+            );
+        }
+
+        // fallback mínimo
+        if (empty($chunks)) {
+            $chunks[] = substr($text, 0, min(2000, $length));
+        }
+
+        return implode("\n...\n", $chunks);
     }
 
 
