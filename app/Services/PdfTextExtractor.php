@@ -10,8 +10,12 @@ class PdfTextExtractor
 {
     public function extract(string $pdfPath, callable $progress = null, callable $log = null): string
     {
-        $text = $this->extractWithParser($pdfPath);
+        if ($log) {
+            $log("Intentando leer texto del PDF...");
+        }
 
+        $text = $this->extractWithParser($pdfPath);
+        
         if (trim($text) !== '') {
 
             if ($log) {

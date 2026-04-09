@@ -11,43 +11,42 @@ use App\Services\DecisionEngine;
 use App\Services\Mappers\ContractMapper;
 use App\Services\OCDSMapper;
 use App\Services\AI\ContractAIFallback;
+use App\Console\Animations\OCRAnimation;
 
 
 class TestNormalize extends Command
 {
 
     protected $signature = 'test:normalize {file}';
-
-
     protected $description = 'Test normalize';
 
 
     public function handle()
     {
+    // Evitar mostrar error Imagick (no afecta flujo)
+        error_reporting(0);
+        ini_set('display_errors', 0);
+        
         $file = $this->argument('file');
 
         $path = storage_path("app/PDFs/$file");
 
         $extractor = new PdfTextExtractor();
 
-        $bar = $this->output->createProgressBar(1);
-        $bar->start();
+        $animation = new OCRAnimation();
+        $animation->start();
 
         $text = $extractor->extract(
             $path,
-            function ($current, $total) use ($bar) {
-                $bar->setMaxSteps($total);
-                $bar->advance();
+            function ($current, $total) use ($animation) {
+                $animation->update($current, $total);
             },
-            function ($msg) use ($bar) {
-                $bar->clear();
-                $this->output->writeln("");
-                $this->output->writeln($msg);
-                $bar->display();
+            function ($msg) use ($animation) {
+                $animation->log($msg);
             }
         );
 
-        $bar->finish();
+        $animation->finish();
         $this->output->writeln("");
 
 

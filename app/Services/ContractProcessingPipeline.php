@@ -6,6 +6,7 @@ use App\Services\ContractNormalizer;
 use App\Services\ConfidenceEvaluator;
 use App\Services\DecisionEngine;
 use App\Services\AI\ContractAIFallback;
+use App\Support\DateParser;
 
 class ContractProcessingPipeline
 {
@@ -29,6 +30,16 @@ class ContractProcessingPipeline
     public function process($mapper, string $text): array
     {
         $raw = $mapper->map($text);
+
+        // Extrae fechaFirma del OCR
+        $signatureBlock = DateParser::extractSignatureBlock($text);
+        $cleanText = DateParser::normalizeText($signatureBlock);
+        $fechaFirma = DateParser::parseSpanishDate($cleanText);
+
+        // solo si no viene del mapper
+        if (!isset($raw['fecha_firma']) || !$raw['fecha_firma']) {
+            $raw['fecha_firma'] = $fechaFirma;
+        }
 
         // 1. Normalización inicial
         $normalized = $this->normalizer->normalize($raw);
