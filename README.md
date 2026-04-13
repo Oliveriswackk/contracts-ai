@@ -1,98 +1,158 @@
-# NormalizerIA – Overview
+          ╭──────────────────────╮
+          │ Contracts AI Proyect │
+          ╰──────────────────────╯
+            ▼
+           /\_/\
+          ( ^.^ )
+           > ^ <
 
-Este proyecto procesa PDFs de contratos y extrae información clave, normalizándola en un formato uniforme.  
-
-## Commands
-
-- **TestExtractor** – Prueba la extracción de texto del PDF usando OCR si es necesario.
-- **TestOCR** – Ejecuta específicamente el OCR sobre PDFs que no contienen texto nativo.
-- **TestNormalize** – Ejecuta toda la pipeline de extracción → mapeo → normalización y muestra el resultado final.
-
-## Services
-
-- **PdfTextExtractor** – Servicio que extrae texto de PDFs y aplica OCR si no hay texto disponible.
-- **ContractNormalizer** – Servicio que toma datos extraídos y los normaliza en un formato uniforme (fechas, montos, nombres de campos, etc.).
-
-## Services/Mappers
-
-- **ContractMapper** – Mapper específico para contratos SESEA, con reglas de extracción precisas.
-- **GenericContractMapper** – Mapper fallback para otros tipos de contrato.
-- **MapperInterface** – Interface que define el contrato que todos los mappers deben cumplir (`map(string $text): array`).
-- **MapperDetector** – Determina qué mapper usar según el contenido del texto (reglas de detección).
-- **MapperFactory** – Crea la instancia correcta de mapper usando `MapperDetector`.
+Reliable extraction of structured contract data from messy PDFs — without guessing.
 
 
-## Fase 6 — Estado de Estabilización
+## What is this?
 
-### Comportamiento del sistema
+This tool processes PDF contracts and extracts structured, validated, and reliable data.
 
-El sistema prioriza la **precisión sobre la completitud**.
+It is designed as a **pre-processing layer** for downstream systems (e.g., OCDS pipelines), ensuring that only trustworthy data moves forward.
 
-- Solo se devuelven campos cuando pueden extraerse con certeza
-- Patrones desconocidos o no soportados regresan `null`
-- No se permiten valores inferidos ni suposiciones
 
----
+## Core Principle
 
-### Casos soportados
+> If data is not reliable → it is discarded (NULL)
 
-Actualmente soporta contratos estándar de SESEA con:
+No guessing. No silent corrections. No assumptions.
 
-- Tipos de contrato:
-  - ADQUISICION_BIENES
-  - ADQUISICION_BIENES_BIS
-  - SERVICIOS
+### Why?
 
-- Estructura reconocible:
-  - Número de contrato (SESEA/...)
-  - Declaración del proveedor
-  - Cláusula de monto
-  - Expresiones de fecha comunes
+Because in contract systems:
 
----
+- Missing data → can be reviewed  
+- Wrong data → corrupts everything downstream  
 
-### Casos no soportados (por diseño)
 
-- Tipos de contrato mixtos (ej. SERVICIOS Y SUMINISTRO)
-- Redacción legal no estándar
-- Fechas complejas o ambiguas
-- Documentos sin estructura clara
+## What it does
 
-En estos casos se devolverán datos parciales o `null`.
+- Extracts text from PDF (native or OCR)
+- Detects contract type automatically
+- Extracts key fields using deterministic rules
+- Normalizes and validates data
+- Assigns confidence scores
+- Classifies result (accept / review / intervene)
 
----
 
-### Reglas de validación
+## What it does NOT do
 
-Se aplican después de la extracción:
+- Does **NOT** invent or infer missing data  
+- Does **NOT** complete OCDS structure  
+- Does **NOT** replace validation or publishing systems  
 
-- fecha_fin ≥ fecha_inicio
-- monto debe ser numérico y > 0
-- rfc_proveedor debe cumplir formato válido
 
-Valores inválidos se convierten en `null`.
+## Processing Flow
+PDF → Text Extraction → Mapper → Normalization → Evaluation → Decision
 
----
 
-### Salida determinista
+### Stages
 
-Misma entrada → misma salida
+#### Text Extraction
+- Native PDF text OR OCR (Tesseract)
 
----
+#### Mapping
+- Regex + heuristics  
+- Contract-type-based extraction  
 
-### Uso seguro
+#### Normalization
+- Data typing (dates, numbers)  
+- Validation (RFC, formats, logic)  
+- Confidence filtering  
 
-El sistema es seguro cuando:
+#### Evaluation
+- Field-level confidence  
+- Global score  
 
-- Se aceptan datos parciales
-- La precisión es más importante que la completitud
-- Los sistemas consumidores toleran `null`
+#### Decision
+- high → accept  
+- medium → review  
+- low → intervene  
 
----
 
-### Siguiente fase
+## Output
 
-Posibles mejoras:
+--- json
+{
+  "data": { ... },
+  "confidence": {
+    "global_score": 0.75,
+    "fields": { ... },
+    "summary": { ... }
+  },
+  "decision": {
+    "classification": "medium",
+    "decision": "review"
+  }
+}
 
-- Ampliar tipos de contrato soportados de forma controlada
-- Integración de IA para casos no cubiertos
+
+## Example Fields Extracted
+
+- Contract number  
+- Supplier name  
+- Supplier RFC  
+- Dependency  
+- Amount  
+- Currency  
+- Start date / end date  
+- Signature date (if detectable)  
+
+
+## Usage
+
+php artisan test:normalize file.pdf
+
+## Integration
+
+This tool is designed to plug into:
+
+- OCDS generation pipelines  
+- Internal validation systems  
+- Manual review workflows  
+
+It outputs clean, validated data — not final published structures.
+
+
+## Tech Stack
+
+- PHP 7.4  
+- Laravel 7  
+- Tesseract OCR (Spanish)  
+- Ghostscript  
+- Imagick  
+
+
+## Known Limitations
+
+- OCR quality directly impacts results  
+- Highly distorted PDFs may lose fields  
+- Some contract formats may not match existing patterns  
+
+
+## Scope
+
+This system is intentionally limited in responsibility:
+
+- Ensures data reliability  
+- Avoids corruption  
+- Signals uncertainty clearly  
+
+Anything beyond that (AI enrichment, OCDS completion, external validation) belongs to downstream systems.
+
+
+## Design Philosophy
+
+> NULL > Wrong Data  
+> Always.
+
+
+## Author
+
+**Oliver Manríquez Coronado**  
+Contracts AI — Internal Tooling · SESEA
